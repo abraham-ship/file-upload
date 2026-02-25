@@ -1,31 +1,30 @@
-const express = require('express')
-const app = express()
-const port = 5050
-const multer = require('multer')
+const express = require('express');
+const app = express();
+const multer  = require('multer')
+// const upload = multer({ dest: 'uploads/' })
 
-// Multer Configuration
+const port = process.env.PORT || 3000;
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+  destination: function (req, file, cb) {
+    cb(null, './uploads')
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.originalname)
+  }
+})
+
+const upload = multer({ storage: storage })
+
+app.get("/", (req, res) => {
+  res.json(res.body);
 });
 
-const upload = multer({ storage });
-
-//  get Endpoint
-app.get('/', (req, res) => res.json());
-
-// File Upload Endpoint
-app.post('/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-  res.json({ message: 'File uploaded successfully', filename: req.file.filename });
+app.post("/api/upload", upload.single('file'), (req, res) => {
+  res.json(req.file);
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log("Listening on port", port);
 });
