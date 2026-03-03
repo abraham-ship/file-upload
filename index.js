@@ -1,29 +1,44 @@
+const cloudinary = require('cloudinary').v2;
 const express = require('express');
+const multer = require('multer');
+const storage = new multer.memoryStorage();
+const upload = multer({
+  storage,
+});
+require('dotenv').config()
+const port = process.env.PORT || 3000
 const app = express();
-const multer  = require('multer')
-// const upload = multer({ dest: 'uploads/' })
 
-const port = process.env.PORT || 3000;
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, './uploads')
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, file.originalname)
+cloudinary.config(
+  {
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET,
   }
-})
+);
 
-const upload = multer({ storage: storage })
+// upload a single image to cloudinary 
+async function handleUpload(file) {
+  const res = await cloudinary.uploader.upload(file, {
+    resource_type: "auto",
+  });
+  return res;
+}
 
-app.get("/", (req, res) => {
-  res.json(res.body);
+app.post("/upload", upload.single("my_file"), async (req, res) => {
+  try {
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+    const cldRes = await handleUpload(dataURI);
+    res.json(cldRes);
+  } catch (error) {
+    console.log(error);
+    res.send({
+      message: error.message,
+    });
+  }
 });
 
-app.post("/api/upload", upload.single('file'), (req, res) => {
-  res.json(req.file);
-});
 
 app.listen(port, () => {
   console.log("Listening on port", port);
